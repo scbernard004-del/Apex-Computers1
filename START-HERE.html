@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Apex Computers — Simple setup</title>
+  <style>
+    :root{--ink:#102724;--green:#b8f45d;--line:#d8e1db;--soft:#f3f7f2}*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font:16px/1.65 Arial,sans-serif}.page{width:min(860px,calc(100% - 32px));margin:32px auto 70px}header{background:var(--ink);color:#fff;padding:30px;border-radius:18px}h1{font-size:clamp(30px,6vw,50px);line-height:1.05;margin:0 0 12px}header p{margin:0;color:#d8e5dc}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.button{display:inline-block;border-radius:9px;padding:12px 17px;background:var(--green);color:var(--ink);font-weight:700;text-decoration:none}.button.alt{background:#fff}section{padding:26px 2px;border-bottom:1px solid var(--line)}h2{font-size:24px;margin:0 0 12px}ol{padding-left:24px}li{margin:8px 0}.note{padding:14px 17px;border-left:4px solid var(--green);background:var(--soft)}code{background:#edf2ee;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}@media(max-width:520px){.page{margin-top:16px}header{padding:24px 20px}.button{width:100%;text-align:center}}
+  </style>
+</head>
+<body><main class="page">
+  <header>
+    <h1>Apex Computers</h1>
+    <p>No software to install. Open locally, upload to GitHub, then connect Vercel.</p>
+    <div class="actions"><a class="button" href="index.html">Open the website</a><a class="button alt" href="https://github.com/new">Create GitHub repository</a></div>
+  </header>
+  <section><h2>1. Test on this computer</h2><ol><li>Extract the ZIP.</li><li>Open the extracted <code>apex-computers</code> folder.</li><li>Double-click <code>index.html</code>.</li></ol><p class="note">No Node.js, npm, VS Code, Git or local server is needed. Calls and normal SMS use your phone, WhatsApp needs internet, and email forms work after Vercel and Gmail are connected.</p></section>
+  <section><h2>2. Upload with the GitHub website</h2><ol><li>Create an empty repository named <code>apex-computers</code>.</li><li>Upload the loose files and the small <code>api</code>, <code>assets</code>, <code>data</code> and <code>lib</code> folders first.</li><li>Upload <code>media-01</code>, <code>media-02</code> and <code>media-03</code> one folder at a time.</li><li>Commit each upload. Make sure <code>index.html</code> appears at the repository's top level.</li></ol></section>
+  <section><h2>3. Connect Vercel</h2><ol><li>Open <a href="https://vercel.com/new">vercel.com/new</a> and import the GitHub repository.</li><li>Select <strong>Other</strong> as the framework.</li><li>Leave the build command and output directory empty/default.</li><li>Click <strong>Deploy</strong>.</li></ol></section>
+  <section><h2>4. Gmail is optional</h2><p>The website works with calls, WhatsApp and normal SMS immediately. For email enquiries, add the five private Gmail settings listed in <code>README.md</code> to Vercel. Never upload a Gmail password to GitHub.</p></section>
+  <section lang="sw"><h2>Maelekezo mafupi</h2><p>Fungua <code>index.html</code> kujaribu tovuti. Pakia mafaili kwenye GitHub kwa makundi yaliyoelezwa hapo juu. Kwenye Vercel chagua <strong>Other</strong> na uache sehemu za build wazi. Huhitaji kusakinisha programu nyingine.</p></section>
+</main></body>
+</html>
