@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {validateEnquiry,makeEmail,allowAttempt} from '../lib/enquiry.mjs';
+import {createHandler} from '../api/enquire.js';
+
+const body=()=>({name:'Test Customer',phone:'0746000000',email:'test@example.com',message:'Availability please',consent:true,website:'',items:[{id:'p18',qty:2,variant:1,price:1}]});
+
+test('uses the catalogue price instead of a client-supplied price',()=>{const x=validateEnquiry(body());assert.equal(x.items[0].unitPrice,1790000);assert.equal(x.items[0].configuration,'512GB SSD');});
+test('Surface enquiry email uses the selected listing and server-owned price',()=>{const b=body();b.items=[{id:'surface-laptop-4-i7',qty:1,variant:0,price:1}];const x=validateEnquiry(b);assert.equal(x.items[0].name,'Microsoft Surface Laptop 4 · i7');assert.equal(x.items[0].unitPrice,1180000);assert.equal(x.items[0].configuration,'256GB SSD');const mail=makeEmail(x,'AC-SURFACE');assert.match(mail.text,/Microsoft Surface Laptop 4 · i7/);assert.match(mail.text,/TSh 1,180,000/);});
+test('storage enquiries retain capacity, price and quantity',()=>{const b=body();b.items=[{id:'hiksemi-ssd',variant:5,qty:2,price:1}];const x=validateEnquiry(b);assert.equal(x.items[0].unitPrice,370000);assert.equal(x.items[0].configuration,'1TB SATA');const mail=makeEmail(x,'AC-STORAGE');assert.match(mail.text,/740,000/);assert(!mail.text.includes('Confirm RAM'));});
+test('rejects unknown products, invalid variants and invalid quantities',()=>{for(const change of [{id:'fake'},{variant:9},{qty:.5},{qty:11},{qty:0}]){const b=body();Object.assign(b.items[0],change);assert.throws(()=>validateEnquiry(b));}});
+test('requires consent and valid contacts; blocks the honeypot',()=>{for(const change of [{consent:false},{name:'A'},{email:'bad@example.com\nBcc:other@test.com'},{phone:'bad'},{website:'spam'}])assert.throws(()=>validateEnquiry({...body(),...change}));});
+test('rejects duplicate lines and oversized baskets',()=>{const b=body();b.items.push({...b.items[0]});assert.throws(()=>validateEnquiry(b));b.items=Array(21).fill(b.items[0]);assert.throws(()=>validateEnquiry(b));});
+test('escapes customer HTML and fixes email headers',()=>{const b=body();b.name='<img src=x>';b.message='<script>alert(1)</script>';const mail=makeEmail(validateEnquiry(b),'AC-TEST');assert(!mail.html.includes('<script>'));assert(mail.html.includes('&lt;script&gt;'));assert.equal(mail.subject,'Apex Computers enquiry AC-TEST');assert.equal(mail.replyTo,'test@example.com');});
+test('rate limiter resets after its time window',()=>{for(let i=0;i<5;i++)assert.equal(allowAttempt('test-rate',1000),true);assert.equal(allowAttempt('test-rate',1000),false);assert.equal(allowAttempt('test-rate',602000),true);});
+
+let ip=0;
+const request=b=>({method:'POST',headers:{origin:'https://shop.example',host:'shop.example','content-type':'application/json','x-vercel-forwarded-for':'test-'+(++ip)},body:b});
+const response=()=>({headers:{},setHeader(k,v){this.headers[k]=v;},end(s){this.body=JSON.parse(s);}});
+
+test('unconfigured email returns failure instead of fake success',async()=>{const res=response();await createHandler({env:{}})(request(body()),res);assert.equal(res.statusCode,503);assert.equal(res.body.ok,false);assert.match(res.body.message,/WhatsApp or SMS/);});
+test('mocked successful delivery routes only to the configured Gmail owner',async()=>{let sent;const res=response();const b=body();b.to='attacker@example.com';await createHandler({env:{SMTP_USER:'owner@gmail.com',SMTP_PASS:'test',NOTIFICATION_EMAIL:'scbernard004@gmail.com'},sendMail:async m=>{sent=m;}})(request(b),res);assert.equal(res.statusCode,200);assert.equal(sent.to,'scbernard004@gmail.com');assert.match(res.body.reference,/^AC-\d{8}-[A-F0-9]{8}$/);});
+test('SMTP failure never reports success',async()=>{const res=response();await createHandler({env:{SMTP_USER:'owner@gmail.com',SMTP_PASS:'test'},sendMail:async()=>{throw Object.assign(new Error('failure'),{code:'TEST_FAILURE'});}})(request(body()),res);assert.equal(res.statusCode,502);assert.equal(res.body.ok,false);assert.match(res.body.message,/WhatsApp or SMS/);});
+test('rejects cross-origin and non-JSON requests',async()=>{for(const headers of [{origin:'https://evil.example'},{'content-type':'text/plain'}]){const req=request(body());Object.assign(req.headers,headers);const res=response();await createHandler({env:{}})(req,res);assert([403,415].includes(res.statusCode));}});
+test('Turnstile failures and hostname mismatches prevent mail',async()=>{for(const result of [{success:false},{success:true,hostname:'evil.example'}]){const res=response();let mailed=false;await createHandler({env:{SMTP_USER:'o@gmail.com',SMTP_PASS:'x',TURNSTILE_SITE_KEY:'site',TURNSTILE_SECRET_KEY:'secret',TURNSTILE_HOSTNAMES:'shop.example'},fetchImpl:async()=>({ok:true,json:async()=>result}),sendMail:async()=>{mailed=true;}})(request({...body(),turnstileToken:'token'}),res);assert.equal(res.statusCode,400);assert.equal(mailed,false);}});
+test('missing Turnstile configuration fails closed',async()=>{const res=response();await createHandler({env:{SMTP_USER:'o@gmail.com',SMTP_PASS:'x',TURNSTILE_SITE_KEY:'site'}})(request(body()),res);assert.equal(res.statusCode,503);});
